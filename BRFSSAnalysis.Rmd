@@ -1,0 +1,786 @@
+---
+title: "Cleaning and Analysis BRFSS 2017, 2019, 2022 Family Planning and Vaccines"
+author: "Esmma Almousa"
+date: "2026-04-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(haven)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+#yr2011 <- read_xpt("LLCP2011.XPT") #SEX, AGE, FLUSHOT5, TYPCNTR6
+yr2017 <- read_xpt("LLCP2017.XPT") #SEX, _AGEG5YR, FLUSHOT6, TYPCNTR7
+yr2019 <- read_xpt("LLCP2019.XPT") # _SEX, #AGE_80, TYPCNTR8, FLUSHOT7
+yr2022 <- read_xpt("LLCP2022.XPT") # _SEX, #AGE_80, BRTHCNT4, FLUSHOT7
+
+# age, race, education, insurance, martial status, urban/rural, employment
+
+yr2017["race"]
+```
+
+
+
+```{r}
+#yr2011upd <- yr2011 %>% select(SEX,AGE,TYPCNTR6,FLUSHOT5) %>%  rename(BRTHCNT = TYPCNTR6,FLUSHOT = FLUSHOT5 ) %>% 
+#   mutate(BRTHCNT = case_when(
+#    BRTHCNT == 1 ~ 1,
+#    BRTHCNT == 2 ~ 2,
+#    BRTHCNT == 3 ~ 3,
+#    BRTHCNT %in% c(4, 5, 6) ~ 4,
+#    BRTHCNT == 8 ~ 6,
+#    BRTHCNT %in% c(11, 13) ~ 7,
+#    BRTHCNT == 14 ~ 9,
+#    BRTHCNT == 15 ~ 10,
+#    TRUE ~ 99
+#  ))
+# 2011 contraception
+#1~1
+#2~2
+#3~3
+#4 or 5 or 6 ~ 4
+#8 ~ 6
+# 11 or 13 ~ 7
+# 14 ~ 9
+# 15 ~ 10
+# else ~ 99
+yr2017upd <- yr2017 %>%
+  select(EDUCA, EMPLOY1, MARITAL, INCOME2,HLTHCVR1,'_AGEG5YR', `_PRACE1`,SEX,TYPCNTR7,FLUSHOT6,HLTHPLN1,HLTHPLN1) %>% 
+  rename(AGE = `_AGEG5YR`)%>%  rename(BRTHCNT = TYPCNTR7,FLUSHOT = FLUSHOT6) %>% 
+     mutate(BRTHCNT = case_when(
+    BRTHCNT == 1 ~ 1,
+    BRTHCNT == 2 ~ 2,
+    BRTHCNT == 3 ~ 3,
+    BRTHCNT %in% c(4, 5, 6) ~ 4,
+    BRTHCNT == 8 ~ 6,
+    BRTHCNT %in% c(11, 13) ~ 7,
+    BRTHCNT == 14 ~ 9,
+    BRTHCNT == 15 ~ 10,
+    TRUE ~ 99
+  )) %>% 
+  #education - EDUCA
+  #employment - employ1
+  #marital = MARITAL
+  #income - INCOME2
+  #insurance - HLTHCVR1
+  # age - AGE
+  #race - mrace1
+   mutate(Year = 2017) %>% 
+    mutate(EDUCA = case_when(
+    EDUCA %in% c(1) ~ "did not complete highschool",
+    EDUCA %in% c(2) ~ "completed highschool", 
+    EDUCA %in% c(3) ~ "some college", 
+    EDUCA %in% c(4) ~ "college graduate",
+  )) 
+# 2017 contraception 
+#1~1
+#2~2
+#3~3
+#4 or 5 or 6 ~ 4
+#8 ~ 6
+# 11 or 13 ~ 7
+# 14 ~ 9
+# 15 ~ 10
+
+yr2019upd <- yr2019 %>% 
+  select(,EDUCA, EMPLOY1, MARITAL, INCOME2,HLTHCVR1,'_AGEG5YR', `_PRACE1`,'_SEX',TYPCNTR8,FLUSHOT7,HLTHPLN1) %>% 
+  rename(SEX = `_SEX`, AGE = `_AGEG5YR`) %>% rename(BRTHCNT = TYPCNTR8,FLUSHOT = FLUSHOT7) %>% 
+     mutate(BRTHCNT = case_when(
+    BRTHCNT == 1 ~ 1,
+    BRTHCNT == 2 ~ 2,
+    BRTHCNT == 3 ~ 3,
+    BRTHCNT %in% c(4, 5, 6) ~ 4,
+    BRTHCNT == 8 ~ 6,
+    BRTHCNT %in% c(11, 13) ~ 7,
+    BRTHCNT == 14 ~ 9,
+    BRTHCNT == 15 ~ 10,
+    TRUE ~ 99
+  )) %>% 
+  mutate(Year = 2019) %>% 
+  # 2019
+    mutate(EDUCA = case_when(
+    EDUCA %in% c(1,2,3) ~ "did not complete highschool",
+    EDUCA %in% c(4) ~ "completed highschool", 
+    EDUCA %in% c(5) ~ "some college", 
+    EDUCA %in% c(6) ~ "college graduate",
+  )) 
+#2019 contraception
+#1~1
+#2~2
+#3~3
+#4 or 5 or 6 ~ 4
+#8 ~ 6
+# 11 or 13 ~ 7
+# 14 ~ 9
+# 15 ~ 10
+yr2022upd <- yr2022 %>% 
+    select(EDUCA, EMPLOY1, MARITAL, INCOME3,PRIMINSR,'_AGEG5YR', RRCLASS3,'_SEX',BRTHCNT4,FLUSHOT7,'_HLTHPLN') %>% 
+  rename(SEX = `_SEX`, AGE = `_AGEG5YR`,INCOME2 = INCOME3, HLTHCVR1 = PRIMINSR, '_PRACE1' = RRCLASS3, HLTHPLN1 = '_HLTHPLN') %>% rename(BRTHCNT = BRTHCNT4,FLUSHOT = FLUSHOT7 ) %>% mutate(Year = 2022) %>%     mutate(EDUCA = case_when(
+    EDUCA %in% c(1,2,3) ~ "did not complete highschool",
+    EDUCA %in% c(4) ~ "completed highschool", 
+    EDUCA %in% c(5) ~ "some college", 
+    EDUCA %in% c(6) ~ "college graduate",
+  )) 
+```
+
+
+```{r}
+filtered <- bind_rows(
+#  yr2011upd,
+  yr2017upd,
+  yr2019upd,
+  yr2022upd
+)
+datasample <- filtered %>% 
+  drop_na(BRTHCNT,FLUSHOT) %>% 
+  filter(SEX == 2) %>% 
+  filter(AGE >= 1 & AGE <= 6) %>% 
+  #mutate(RACE = `_PRACE1`)
+  filter(BRTHCNT == 1 | BRTHCNT == 2 | BRTHCNT == 3 | BRTHCNT == 4 | BRTHCNT == 6 | BRTHCNT == 7 | BRTHCNT == 9 | BRTHCNT == 10 ) %>%
+  filter(FLUSHOT == 1 |  FLUSHOT == 2) %>% 
+   mutate(
+    bc_type = case_when(
+      BRTHCNT == 1  ~ "Female sterilization",
+      BRTHCNT == 2  ~ "Male sterilization",
+      BRTHCNT == 3  ~ "Contraceptive implant",
+      BRTHCNT == 4  ~ "IUD",
+      BRTHCNT == 6  ~ "Birth control pills",
+      BRTHCNT == 7  ~ "Condoms",
+      BRTHCNT == 9  ~ "Had sex at a time less likely to get pregnant",
+      BRTHCNT == 10 ~ "Withdrawal or pulling out",
+      TRUE ~ NA_character_
+    )
+  ) %>% 
+  mutate(BRTHCNT = case_when(
+    BRTHCNT %in% c(1,2,3,4,5) ~ "unnatural",
+    BRTHCNT %in% c(7,9,10) ~ "natural",
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(MARITAL = case_when(
+    MARITAL %in% c(1,6) ~ "Partnered",
+    MARITAL %in% c(2,3,4,5) ~ "Not Partnered",
+  )) %>% 
+    mutate(HLTHCVR1 = case_when(
+    HLTHCVR1 %in% c(1,2,3,4,5,6,7) ~ "Yes",
+    HLTHCVR1 %in% c(8) ~ "No",
+  )) %>% 
+    mutate(EMPLOY1 = case_when(
+    EMPLOY1 %in% c(1,2) ~ "Employed",
+    EMPLOY1 %in% c(3,4,5,6,8) ~ "Unemployed",
+    EMPLOY1 %in% c(7) ~ "Retired"
+  )) 
+
+
+  
+
+#1 - Female sterilization 
+#2 - Male sterilization 
+#3 contraceptive implant
+#4 IUD
+#6 Birth control pills 
+#7 condoms
+# 9 - had sex at a time less likely to be preg)
+# 10 withdrawal or pulling out
+
+
+```
+
+```{r}
+unique(datasample_clean$bc_type[grep("pill", tolower(datasample_clean$bc_type))])
+```
+
+
+```{r}
+library(dplyr)
+library(tableone)
+library(forcats)
+
+datasample_clean <- datasample %>%
+  drop_na(BRTHCNT) %>% 
+  mutate(
+    SEX      = as_factor(SEX),
+    AGE      = as_factor(AGE),
+    EDUCA    = as_factor(EDUCA),
+    EMPLOY1  = as_factor(EMPLOY1),
+    MARITAL  = as_factor(MARITAL),
+    RRCLASS3 = as_factor(`_PRACE1`),
+    HLTHPLN = as_factor(HLTHPLN1),
+
+    # Stratification variable
+    BRTHCNT = as_factor(BRTHCNT),
+    bc_type = as_factor(bc_type)
+  )
+
+vars <- c("AGE", "EDUCA", "EMPLOY1", "MARITAL",
+          "INCOME3", "RRCLASS3","HLTHPLN")
+
+tab1 <- CreateTableOne(
+  vars = vars,
+  strata = "BRTHCNT",
+  data = datasample_clean,
+  factorVars = vars,
+  addOverall = TRUE   
+)
+
+print(tab1,
+      showAllLevels = TRUE,
+      quote = FALSE,
+      noSpaces = TRUE,
+      formatCat = "f")
+```
+
+```{r}
+library(dplyr)
+
+# Overall total + breakdown by BRTHCNT
+totals <- datasample_clean %>%
+  drop_na(BRTHCNT) %>% 
+  summarise(
+    total_sample = n(),
+    total_natural = sum(BRTHCNT == "natural", na.rm = TRUE),
+    total_unnatural = sum(BRTHCNT == "unnatural", na.rm = TRUE)
+  )
+
+totals
+```
+
+
+```{r}
+
+df <- datasample_clean
+
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+df$BRTHCNT <- tolower(as.character(df$BRTHCNT))
+df$BRTHCNT <- ifelse(df$BRTHCNT == "unnatural", 1,
+                     ifelse(df$BRTHCNT == "natural", 0, NA))
+
+df$AGE <- as.factor(df$AGE)
+
+df <- df[complete.cases(df), ]
+
+
+df$BRTHCNT <- factor(df$BRTHCNT, levels = c(0,1))
+df$FLUSHOT <- factor(df$FLUSHOT, levels = c(0,1))
+
+tab <- xtabs(~ BRTHCNT + FLUSHOT + AGE, data = df)
+
+
+is_valid <- function(x) {
+  is.array(x) &&
+    length(dim(x)) == 2 &&
+    all(dim(x) == c(2,2)) &&
+    sum(x) > 0 &&
+    all(is.finite(x))
+}
+
+keep <- apply(tab, 3, is_valid)
+
+cat("Dropped AGE strata:\n")
+print(dimnames(tab)[[3]][!keep])
+
+tab <- tab[, , keep, drop = FALSE]
+
+
+stopifnot(
+  length(dim(tab)) == 3,
+  all(dim(tab)[1:2] == c(2,2)),
+  !any(is.na(tab)),
+  all(apply(tab, 3, sum) > 0)
+)
+
+
+tab
+```
+
+```{r}
+df <- datasample_clean
+
+
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+# natural = 0 (reference), unnatural = 1 (exposed)
+df$BRTHCNT <- tolower(as.character(df$BRTHCNT))
+df$BRTHCNT <- ifelse(df$BRTHCNT == "natural", 0,
+                     ifelse(df$BRTHCNT == "unnatural", 1, NA))
+
+df$AGE <- as.factor(df$AGE)
+
+df <- df[complete.cases(df[, c("BRTHCNT", "FLUSHOT", "AGE")]), ]
+
+
+tab <- xtabs(~ BRTHCNT + FLUSHOT + AGE, data = df)
+
+keep <- apply(tab, 3, function(x)
+  is.matrix(x) &&
+  all(dim(x) == c(2,2)) &&
+  sum(x) > 0
+)
+
+tab <- tab[, , keep, drop = FALSE]
+
+
+a <- tab["1","1",]  # unnatural
+b <- tab["1","0",]
+c <- tab["0","1",]  # natural (REFERENCE)
+d <- tab["0","0",]
+
+
+a <- a + 0.5
+b <- b + 0.5
+c <- c + 0.5
+d <- d + 0.5
+
+mh_pr <- sum(a * (c + d) / (a + b)) /
+         sum(c * (a + b) / (c + d))
+
+se_log <- sqrt(1/sum(a) + 1/sum(c))
+
+ci_low <- exp(log(mh_pr) - 1.96 * se_log)
+ci_high <- exp(log(mh_pr) + 1.96 * se_log)
+
+
+crude <- aggregate(FLUSHOT ~ BRTHCNT, df, mean)
+
+
+table2 <- data.frame(
+  Group = c("Natural (ref)", "Unnatural"),
+  Crude_Prevalence = c(
+    crude$FLUSHOT[crude$BRTHCNT == 0],
+    crude$FLUSHOT[crude$BRTHCNT == 1]
+  ),
+  MH_PR = c(1, mh_pr),
+  CI_Lower = c(1, ci_low),
+  CI_Upper = c(1, ci_high)
+)
+
+table2
+```
+
+**LOOK AT THIS BLOCK OF CODE BELOW FOR TABLE2 OUTPUT
+```{r}
+colnames(df)
+```
+
+
+```{r}
+
+df <- datasample_clean
+
+# Recode FLUSHOT
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+# Recode exposure (natural = reference)
+df$BRTHCNT <- tolower(as.character(df$BRTHCNT))
+df$BRTHCNT <- ifelse(df$BRTHCNT == "natural", "natural",
+                     ifelse(df$BRTHCNT == "unnatural", "unnatural", NA))
+
+df <- df[complete.cases(df[, c("BRTHCNT", "FLUSHOT")]), ]
+
+# Set reference group
+df$BRTHCNT <- factor(df$BRTHCNT)
+df$BRTHCNT <- relevel(df$BRTHCNT, ref = "natural")
+
+
+get_stats <- function(g) {
+  
+  exposed <- df$FLUSHOT[df$BRTHCNT == g]
+  ref <- df$FLUSHOT[df$BRTHCNT == "natural"]
+  
+  a <- sum(exposed == 1)
+  b <- sum(exposed == 0)
+  c <- sum(ref == 1)
+  d <- sum(ref == 0)
+  
+  pr <- (a / (a + b)) / (c / (c + d))
+  
+  se_log <- sqrt(1/a - 1/(a + b) + 1/c - 1/(c + d))
+  
+  ci_low <- exp(log(pr) - 1.96 * se_log)
+  ci_high <- exp(log(pr) + 1.96 * se_log)
+  
+  crude <- mean(exposed)
+  
+  data.frame(
+    Group = g,
+    Crude_Prevalence = crude,
+    MH_PR = pr,
+    CI_Lower = ci_low,
+    CI_Higher = ci_high
+  )
+}
+
+# non-ref group only
+table2 <- do.call(rbind,
+                  lapply(setdiff(levels(df$BRTHCNT), "natural"), get_stats))
+
+# reference row
+ref_row <- data.frame(
+  Group = "natural",
+  Crude_Prevalence = mean(df$FLUSHOT[df$BRTHCNT == "natural"]),
+  MH_PR = 1,
+  CI_Lower = 1,
+  CI_Higher = 1
+)
+
+table2 <- rbind(ref_row, table2)
+
+# Sort by crude prevalence
+table2 <- table2[order(table2$Crude_Prevalence), ]
+
+table2
+
+```
+**LOOK AT THIS BLOCK OF CODE BELOW FOR TABLE2 OUTPUT
+
+```{r}
+
+df <- datasample
+
+# Recode FLUSHOT
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+# Clean and classify bc_type
+df$bc_type <- trimws(tolower(as.character(df$bc_type)))
+
+df$bc_type <- case_when(
+  df$bc_type %in% c("female sterilization", "male sterilization") ~ "sterilization",
+  grepl("implant", df$bc_type) ~ "contraceptive implant",
+  df$bc_type == "iud" ~ "iud",
+  grepl("pill", df$bc_type) ~ "birth control pills",
+  grepl("condom", df$bc_type) ~ "condoms",
+  grepl("less likely", df$bc_type) ~ "timing/rhythm",
+  grepl("withdrawal|pulling out", df$bc_type) ~ "withdrawal",
+  TRUE ~ NA_character_
+)
+
+df <- df[complete.cases(df[, c("bc_type", "FLUSHOT")]), ]
+
+# FORCE reference category
+df$bc_type <- factor(df$bc_type)
+df$bc_type <- relevel(df$bc_type, ref = "withdrawal")
+
+# Function to compute PR + CI vs withdrawal
+get_stats <- function(g) {
+  
+  exposed <- df$FLUSHOT[df$bc_type == g]
+  ref <- df$FLUSHOT[df$bc_type == "withdrawal"]
+  
+  a <- sum(exposed == 1)
+  b <- sum(exposed == 0)
+  c <- sum(ref == 1)
+  d <- sum(ref == 0)
+  
+  pr <- (a / (a + b)) / (c / (c + d))
+  
+  se_log <- sqrt(1/a - 1/(a + b) + 1/c - 1/(c + d))
+  
+  ci_low <- exp(log(pr) - 1.96 * se_log)
+  ci_high <- exp(log(pr) + 1.96 * se_log)
+  
+  crude <- mean(exposed)
+  
+  data.frame(
+    Birth_Control_Type = g,
+    Crude_Prevalence = crude,
+    MH_PR = pr,
+    CI_Lower = ci_low,
+    CI_Higher = ci_high
+  )
+}
+
+table2 <- do.call(rbind,
+                  lapply(setdiff(levels(df$bc_type), "withdrawal"), get_stats))
+
+ref_row <- data.frame(
+  Birth_Control_Type = "withdrawal",
+  Crude_Prevalence = mean(df$FLUSHOT[df$bc_type == "withdrawal"]),
+  MH_PR = 1,
+  CI_Lower = 1,
+  CI_Higher = 1
+)
+
+table2 <- rbind(ref_row, table2)
+
+# Sort
+table2 <- table2[order(table2$Birth_Control_Type), ]
+
+table2
+table2 <- table2[order(table2$Crude_Prevalence), ]
+table2
+```
+
+```{r}
+df
+```
+
+
+
+```{r}
+apply(mh.2by2, 3, function(x) {
+  matrix(x, 2, 2)
+})
+```
+
+```{r}
+unique(df$bc_type[grep("pill", tolower(df$bc_type))])
+```
+
+
+```{r}
+apply(mh.2by2, 3, function(x) {
+  any(x == 0)
+})
+```
+
+** COUNFOUNDER ADJUSTMENT
+
+```{r}
+df <- datasample_clean
+
+# Recode outcome
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+# Recode exposure
+df$BRTHCNT <- tolower(as.character(df$BRTHCNT))
+df$BRTHCNT <- ifelse(df$BRTHCNT == "natural", "natural",
+                     ifelse(df$BRTHCNT == "unnatural", "unnatural", NA))
+
+
+confounders <- c("EDUCA","MARITAL",
+                 "AGE",
+                 "RRCLASS3","HLTHPLN","EMPLOY1")
+
+df <- df[complete.cases(df[, c(confounders, "BRTHCNT", "FLUSHOT")]), ]
+
+df$BRTHCNT <- factor(df$BRTHCNT)
+df$BRTHCNT <- relevel(df$BRTHCNT, ref = "natural")
+
+# Strata definition
+df$strata <- interaction(df[, confounders], drop = TRUE)
+
+get_stats <- function(g) {
+
+  d <- df[df$BRTHCNT %in% c("natural", g), ]
+  strata_list <- split(d, d$strata)
+
+  num <- 0
+  den <- 0
+
+  for (s in strata_list) {
+
+    a <- sum(s$FLUSHOT == 1 & s$BRTHCNT == g, na.rm = TRUE)
+    b <- sum(s$FLUSHOT == 0 & s$BRTHCNT == g, na.rm = TRUE)
+    c <- sum(s$FLUSHOT == 1 & s$BRTHCNT == "natural", na.rm = TRUE)
+    d0 <- sum(s$FLUSHOT == 0 & s$BRTHCNT == "natural", na.rm = TRUE)
+
+    if ((a + b + c + d0) == 0) next
+
+    
+    if (any(c(a,b,c,d0) == 0)) {
+      a <- a + 0.5
+      b <- b + 0.5
+      c <- c + 0.5
+      d0 <- d0 + 0.5
+    }
+
+    n <- a + b + c + d0
+
+    num <- num + a * (c + d0) / n
+    den <- den + c * (a + b) / n
+  }
+
+  rr_mh <- num / den
+
+  log_rr <- log(rr_mh)
+  se <- sqrt(1/num + 1/den)
+
+  ci_low <- exp(log_rr - 1.96 * se)
+  ci_high <- exp(log_rr + 1.96 * se)
+
+  data.frame(
+    Group = g,
+    Crude_Prevalence = mean(df$FLUSHOT[df$BRTHCNT == g]),
+    MH_PR = rr_mh,
+    CI_Lower = ci_low,
+    CI_Higher = ci_high
+  )
+}
+
+table2 <- do.call(rbind,
+                  lapply(setdiff(levels(df$BRTHCNT), "natural"), get_stats))
+
+# reference row
+ref_row <- data.frame(
+  Group = "natural",
+  Crude_Prevalence = mean(df$FLUSHOT[df$BRTHCNT == "natural"]),
+  MH_PR = 1,
+  CI_Lower = 1,
+  CI_Higher = 1
+)
+
+table2 <- rbind(ref_row, table2)
+
+# sort
+table2 <- table2[order(table2$Crude_Prevalence), ]
+
+table2
+```
+
+```{r}
+df <- datasample
+
+# Recode outcome
+df$FLUSHOT <- ifelse(df$FLUSHOT == 1, 1,
+                     ifelse(df$FLUSHOT == 2, 0, NA))
+
+# Clean and classify bc_type
+df$bc_type <- trimws(tolower(as.character(df$bc_type)))
+
+df$bc_type <- case_when(
+  df$bc_type %in% c("female sterilization", "male sterilization") ~ "sterilization",
+  grepl("implant", df$bc_type) ~ "contraceptive implant",
+  df$bc_type == "iud" ~ "iud",
+  grepl("pill", df$bc_type) ~ "birth control pills",
+  grepl("condom", df$bc_type) ~ "condoms",
+  grepl("less likely", df$bc_type) ~ "timing/rhythm",
+  grepl("withdrawal|pulling out", df$bc_type) ~ "withdrawal",
+  TRUE ~ NA_character_
+)
+
+
+confounders <- c("EDUCA","MARITAL",
+                 "AGE",
+                 "RRCLASS3","HLTHPLN","EMPLOY1")
+
+
+vars_needed <- c(confounders, "bc_type", "FLUSHOT")
+vars_present <- vars_needed[vars_needed %in% names(df)]
+
+df <- df[complete.cases(df[, vars_present]), ]
+
+df$bc_type <- factor(df$bc_type)
+df$bc_type <- relevel(df$bc_type, ref = "withdrawal")
+
+
+df$strata <- interaction(df[, confounders[confounders %in% names(df)]], drop = TRUE)
+
+get_stats <- function(g) {
+
+  d <- df[df$bc_type %in% c("withdrawal", g), ]
+  strata_list <- split(d, d$strata)
+
+  num <- 0
+  den <- 0
+
+  for (s in strata_list) {
+
+    a <- sum(s$FLUSHOT == 1 & s$bc_type == g, na.rm = TRUE)
+    b <- sum(s$FLUSHOT == 0 & s$bc_type == g, na.rm = TRUE)
+    c <- sum(s$FLUSHOT == 1 & s$bc_type == "withdrawal", na.rm = TRUE)
+    d0 <- sum(s$FLUSHOT == 0 & s$bc_type == "withdrawal", na.rm = TRUE)
+
+    if ((a + b + c + d0) == 0) next
+
+   
+    if (any(c(a,b,c,d0) == 0)) {
+      a <- a + 0.5
+      b <- b + 0.5
+      c <- c + 0.5
+      d0 <- d0 + 0.5
+    }
+
+    n <- a + b + c + d0
+
+    num <- num + a * (c + d0) / n
+    den <- den + c * (a + b) / n
+  }
+
+  rr_mh <- num / den
+
+  log_rr <- log(rr_mh)
+  se <- sqrt(1/num + 1/den)
+
+  ci_low <- exp(log_rr - 1.96 * se)
+  ci_high <- exp(log_rr + 1.96 * se)
+
+  data.frame(
+    Group = g,
+    Crude_Prevalence = mean(df$FLUSHOT[df$bc_type == g]),
+    MH_PR = rr_mh,
+    CI_Lower = ci_low,
+    CI_Higher = ci_high
+  )
+}
+
+
+table2 <- do.call(rbind,
+                  lapply(setdiff(levels(df$bc_type), "withdrawal"), get_stats))
+
+# Reference 
+ref_row <- data.frame(
+  Group = "withdrawal",
+  Crude_Prevalence = mean(df$FLUSHOT[df$bc_type == "withdrawal"]),
+  MH_PR = 1,
+  CI_Lower = 1,
+  CI_Higher = 1
+)
+
+table2 <- rbind(ref_row, table2)
+
+# Sort
+table2 <- table2[order(table2$Crude_Prevalence), ]
+
+table2
+```
+
+## extra unused code
+
+```{r}
+# Mantel–Haenszel: contraceptive method vs flu shot, stratified by age group
+
+# Recode flu shot (assumes 1 = got shot, 2 = did not)
+datasample$flu <- ifelse(datasample$FLUSHOT == 1, 1, 0)
+
+# Fix age grouping (include upper bound)
+datasample$age_group <- cut(
+  datasample$AGE,
+  breaks = c(18, 29, 39, 49, Inf),
+  include.lowest = TRUE
+)
+
+# Keep only BRTHCNT categories 6, 9, and 10 
+sub <- subset(datasample, BRTHCNT %in% c(6, 9, 10))
+
+# Collapse categories
+sub$BRTHCNT2 <- ifelse(sub$BRTHCNT == 6, "IUD", "Other_9_10")
+
+
+sub$flu <- factor(sub$flu, levels = c(0, 1))
+sub$BRTHCNT2 <- factor(sub$BRTHCNT2)
+sub$age_group <- factor(sub$age_group)
+
+
+tab <- xtabs(~ BRTHCNT2 + flu + age_group, data = sub)
+
+# Mantel-Haenszel test
+mantelhaen.test(tab)
+
+
+#Age, race, healthcare access insurance, income, marriage, year, urban/rural (accessibility), education is better than income
+
+```
+
+
